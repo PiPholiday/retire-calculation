@@ -92,6 +92,11 @@ tr.neg td{color:var(--warn)}
 .scroll{max-height:420px;overflow-y:auto}
 .toggle{display:flex;align-items:center;gap:10px;margin:8px 0;font-size:.95rem;color:var(--mute);cursor:pointer;min-height:44px}
 .toggle input{width:22px;height:22px;min-height:0}
+.alerts{display:grid;gap:8px;margin:12px 0 4px}
+.alerts:empty{display:none}
+.alert{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:10px;font-size:.98rem;line-height:1.55;border-left:4px solid var(--accent);background:var(--accent-soft)}
+.alert.warn{border-left-color:var(--warn);background:var(--warn-soft)}
+.alert .ic{flex:none}
 .notes{font-size:.88rem;color:var(--mute)}
 .notes li{margin-bottom:4px}
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
@@ -215,6 +220,10 @@ tr.neg td{color:var(--warn)}
     <p class="hint">只付一段時間的錢，例如房貸、保險費、孝親費。<b>這些不要重複算進上面的生活支出。</b></p>
     <div class="rows" id="exps"></div>
     <div class="addbar"><button class="btn" type="button" id="addExp">＋ 新增特定期間的支出</button></div>
+    <h3 class="subh">定期定額／儲蓄</h3>
+    <p class="hint">每月從活存轉去買股票或存定存的錢，從現在<b>存到退休那年為止</b>。活存會先留 6 個月支出，收入扣掉支出後不夠存時，有多少存多少，不會為了存錢去賣股票或解定存。</p>
+    <div class="rows" id="saves"></div>
+    <div class="addbar"><button class="btn" type="button" id="addSave">＋ 新增定期定額／儲蓄</button></div>
   </section>
 
   <!-- 6 -->
@@ -261,6 +270,7 @@ tr.neg td{color:var(--warn)}
   <section class="card result" id="result">
     <div class="step"><span class="n">✓</span><h2>試算結果</h2></div>
     <div id="verdict" class="verdict"></div>
+    <div class="alerts" id="alerts"></div>
     <div class="kpis" id="kpis"></div>
 
     <h3 class="sec">資產變化</h3>
@@ -274,7 +284,7 @@ tr.neg td{color:var(--warn)}
     </div>
 
     <h3 class="sec">每 5 年的資產</h3>
-    <p class="hint" style="margin-bottom:8px">照「步驟 4」填的支出過日子。活存不夠時，依序從定存、股票補。<span id="axisNote"></span></p>
+    <p class="hint" style="margin-bottom:8px">照「步驟 5」填的支出過日子。活存每年至少留 6 個月的支出（生活費＋特定期間的支出），不夠時依序從定存、股票補。<span id="axisNote"></span></p>
     <div class="tw"><table id="tblAssets"></table></div>
 
     <h3 class="sec">退休後每年、每月可以花多少</h3>
@@ -284,7 +294,7 @@ tr.neg td{color:var(--warn)}
     </div>
     <div class="tw scroll"><table id="tblSpend"></table></div>
 
-    <h3 class="sec">提醒</h3>
+    <h3 class="sec">補充說明</h3>
     <ul class="notes" id="notes"></ul>
     <ul class="notes">
       <li>這是簡化的試算：股票用長期平均報酬計算，沒有算稅、手續費和每年的漲跌，實際結果會有出入。</li>
@@ -330,6 +340,22 @@ tr.neg td{color:var(--warn)}
   </div>
 </template>
 
+<template id="tplSave">
+  <div class="row">
+    <div class="top">
+      <input class="name" aria-label="名稱" placeholder="(例：定期定額 0050)">
+      <button class="del" type="button" aria-label="刪除這項">×</button>
+    </div>
+    <div class="money"><input data-money class="amt" inputmode="numeric" aria-label="金額" placeholder="(例：10,000)"><div class="seg unit"><button type="button" data-v="m">每月</button><button type="button" data-v="y">每年</button></div></div>
+    <div class="wan amtw"></div>
+    <div class="meta">
+      <label class="f"><span>存到哪裡</span><select class="target"><option value="stock">股票</option><option value="td">定存</option></select></label>
+      <label class="f whow"><span>誰在存</span><select class="who"><option value="dad"></option><option value="mom"></option></select></label>
+      <div class="f" style="font-size:.88rem;color:var(--mute);align-self:center">存到退休那年為止</div>
+    </div>
+  </div>
+</template>
+
 <template id="tplLp">
   <div class="lpbox">
     <h3 class="lpname"></h3>
@@ -369,6 +395,7 @@ const EMPTY = {
   ],
   lp:{dad:{has:'yes', how:'est', sal:'', yrs:'', age:'', amt:''}, mom:{has:'yes', how:'est', sal:'', yrs:'', age:'', amt:''}},
   exps:[],
+  saves:[],
   ltc:{type:'', cost:'', yrs:''},
   expPre:'', expPreUnit:'m', expPost:'', expPostUnit:'m', reserve:'', legacy:'',
   rCash:'', rTd:'', rStock:'', inf:'', real:true, spendMode:'zero'
@@ -393,6 +420,7 @@ if (!S.lp) {
   S.incomes=(S.incomes||[]).filter(x=>!x._drop && !(x.kind==='other' && /勞保年金/.test(x.name||'') && !n0(x.amt)));
 }
 if (!S.exps) S.exps=[];
+if (!S.saves) S.saves=[];
 if (!S.ltc) S.ltc={type:'', cost:'', yrs:''};
 Object.keys(PH).forEach(id=>{ const el=document.getElementById(id); if(el) el.placeholder=PH[id]; });
 const single = ()=> S.mode==='single';
@@ -426,7 +454,7 @@ function applyMode(){
   $('hint1').textContent = one ? `會一路算到滿 ${ea} 歲。已經退休的話，退休年齡填現在的年紀。` : `兩個人的存款、收入、支出合併計算，會一路算到年紀比較小的那位滿 ${ea} 歲。已經退休的話，退休年齡填現在的年紀。`;
   $('hint2').textContent = (one ? '' : '兩個人加起來的總額。') + '可以打開銀行和證券 App 一項一項加總。';
   $('hint4').textContent = (one ? '每個月的生活費' : '兩個人一起的生活費') + '，包含吃住、交通、水電、紅包等日常開銷。這些都會從活存扣。';
-  renderIncomes(); renderLp(); renderExps(); renderLtc();
+  renderIncomes(); renderLp(); renderExps(); renderSaves(); renderLtc();
 }
 function updWan(id){ const el=document.querySelector(`[data-wan="${id}"]`); if(el) el.textContent = S[id]===''?'':'＝ '+wan(S[id]); }
 
@@ -590,6 +618,37 @@ $('addExp').addEventListener('click',()=>{
   const rows=$('exps').querySelectorAll('.row'); const last=rows[rows.length-1]; if(last){ last.scrollIntoView({block:'center'}); last.querySelector('.name').focus(); }
 });
 
+/* ---------- 定期定額 ---------- */
+function renderSaves(){
+  const box=$('saves'); box.replaceChildren();
+  S.saves.forEach((x,i)=>{
+    const node=$('tplSave').content.firstElementChild.cloneNode(true);
+    const q=(c)=>node.querySelector(c);
+    q('.name').value=x.name||'';
+    q('.amt').value=x.amt===''||x.amt==null?'':fmt(x.amt);
+    q('.amtw').textContent=x.amt===''||x.amt==null?'':'＝ '+wan(x.amt);
+    const opts=q('.who').options; opts[0].textContent=nm('dad'); opts[1].textContent=nm('mom');
+    q('.who').value=x.who||'dad'; q('.target').value=x.target||'stock';
+    if(single()) q('.whow').style.display='none';
+    q('.unit').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===(x.unit||'m'))));
+    q('.name').addEventListener('input',e=>{x.name=e.target.value; touched(false);});
+    const a=q('.amt');
+    a.addEventListener('input',()=>{x.amt=toNum(a.value); q('.amtw').textContent=x.amt===''?'':'＝ '+wan(x.amt); touched();});
+    a.addEventListener('blur',()=>{a.value=x.amt===''?'':fmt(x.amt);});
+    a.addEventListener('focus',()=>{a.value=x.amt===''?'':String(x.amt); a.select();});
+    q('.who').addEventListener('change',e=>{x.who=e.target.value; touched();});
+    q('.target').addEventListener('change',e=>{x.target=e.target.value; touched();});
+    q('.unit').addEventListener('click',e=>{const b=e.target.closest('button'); if(!b) return; x.unit=b.dataset.v;
+      q('.unit').querySelectorAll('button').forEach(z=>z.setAttribute('aria-pressed',String(z===b))); touched();});
+    q('.del').addEventListener('click',()=>{S.saves.splice(i,1); renderSaves(); touched();});
+    box.appendChild(node);
+  });
+}
+$('addSave').addEventListener('click',()=>{
+  S.saves.push({name:'',amt:'',unit:'m',who:'dad',target:'stock'}); renderSaves(); touched();
+  const rows=$('saves').querySelectorAll('.row'); const last=rows[rows.length-1]; if(last){ last.scrollIntoView({block:'center'}); last.querySelector('.name').focus(); }
+});
+
 /* ---------- 長照估算 ---------- */
 const LTC_DEF={home:38000, inst:50000};
 function ltcCalc(){
@@ -634,6 +693,7 @@ function inputsFrom(st){
     cash:n0(st.cash), td:n0(st.td), stock:n0(st.stock),
     incomes:(st.incomes||[]).filter(x=>!(one && x.who==='mom')).map(x=>({kind:x.kind==='work'?'work':'other', who:x.who, annual:yr(x.amt,x.unit), from:x.from===''||x.from==null?null:Number(x.from), to:x.to===''||x.to==null?null:Number(x.to)}))
       .concat((one?['dad']:['dad','mom']).map(k=>{ const r=lpCalc(st.lp&&st.lp[k]); return {kind:'lp', who:k, annual:r.monthly*12, from:r.age||LP_BASE, to:null}; }).filter(x=>x.annual>0)),
+    saves:(st.saves||[]).map(x=>({who:one?'dad':(x.who==='mom'?'mom':'dad'), annual:yr(x.amt,x.unit), target:x.target==='td'?'td':'stock'})).filter(x=>x.annual>0),
     exps:(st.exps||[]).map(x=>({who:one?'dad':(x.who==='mom'?'mom':'dad'), annual:yr(x.amt,x.unit), from:x.from===''||x.from==null?null:Number(x.from), to:x.to===''||x.to==null?null:Number(x.to)})).filter(x=>x.annual>0),
     expPre:(st.expPre===''||st.expPre==null)? yr(st.expPost,st.expPostUnit) : yr(st.expPre,st.expPreUnit),
     expPost:(st.expPost===''||st.expPost==null)? yr(st.expPre,st.expPreUnit) : yr(st.expPost,st.expPostUnit),
@@ -679,11 +739,24 @@ function simulate(P, spendReal, retireShift){
     stock = stock*(1+P.rStock);
     if(cash<0){ const t=Math.min(td,-cash); td-=t; cash+=t; }
     if(cash<0){ const t=Math.min(stock,-cash); stock-=t; cash+=t; }
+    // 活存至少留 6 個月支出，不夠就從定存、再從股票補回來
+    const buf = expense*0.5*(1+P.inf); // 年底的物價，換回今天的錢剛好是 6 個月
+    if(cash>=0 && cash<buf){ let need=buf-cash; let t=Math.min(td,need); td-=t; cash+=t; need-=t; t=Math.min(stock,need); stock-=t; cash+=t; }
+    // 定期定額：退休前，從活存超過 6 個月生活費的部分轉出，不夠就少存
+    let savePlan=0, saveDone=0;
+    const act=(P.saves||[]).filter(x=> (x.who==='mom'? mA<momRet : dA<dadRet));
+    if(act.length){
+      savePlan = act.reduce((t,x)=>t+x.annual*g,0);
+      const avail = Math.max(0, cash - buf);
+      const k = savePlan>0 ? Math.min(1, avail/savePlan) : 0;
+      act.forEach(x=>{ const v=x.annual*g*k; if(x.target==='td') td+=v; else stock+=v; });
+      saveDone = savePlan*k; cash -= saveDone;
+    }
     const total=cash+td+stock;
     const defl=Math.pow(1+P.inf,y);
     if(cash<-0.5 && depleted==null) depleted=y;
     if(total < P.reserve*defl - 0.5 && belowReserve==null) belowReserve=y;
-    rows.push({y, dad:P.dadAge+y, mom:P.momAge+y, cash, td, stock, total, defl, income, expense, retiredAll});
+    rows.push({y, dad:P.dadAge+y, mom:P.momAge+y, cash, td, stock, total, defl, income, expense, retiredAll, savePlan, saveDone});
   }
   return {rows, N, fullRetY, dadRet, momRet, depleted, belowReserve};
 }
@@ -755,7 +828,7 @@ function render(){
   const V=$('verdict'), K=$('kpis');
   if(msgs.length){
     V.className='verdict bad'; V.replaceChildren(); msgs.forEach(m=>{const d=document.createElement('div'); d.textContent=m; V.appendChild(d);});
-    K.replaceChildren(); $('chart').replaceChildren(); $('tblAssets').replaceChildren(); $('tblSpend').replaceChildren(); $('notes').replaceChildren(); $('spendHint').textContent='';
+    K.replaceChildren(); $('alerts').replaceChildren(); $('chart').replaceChildren(); $('tblAssets').replaceChildren(); $('tblSpend').replaceChildren(); $('notes').replaceChildren(); $('spendHint').textContent='';
     return;
   }
   const base=simulate(P,null);
@@ -783,11 +856,12 @@ function render(){
     big.textContent=`照目前的計畫，錢可能不夠用到 ${P.endAge} 歲`;
     const when = base.belowReserve!=null ? base.rows[base.belowReserve] : base.rows[base.depleted||base.N];
     p.textContent = base.depleted!=null
-      ? `大約在 ${ageWho(base.rows[base.depleted])}時，存款會用完。可以試著延後退休、減少支出，或降低保留的金額。`
+      ? `大約在 ${ageWho(base.rows[base.depleted])}時，存款會用完。可以試著${Math.max(P.dadRet-P.dadAge,P.momRet-P.momAge)>0?'延後退休、':''}減少支出，或降低保留的金額。`
       : `大約在 ${ageWho(when)}時，會開始動用到醫療／長照預備金。`;
   }
   V.append(big,p);
-  if(earliest!=null){
+  if(earliest!=null && maxEarly===0){ /* 已經退休，不用提早／延後建議 */ }
+  else if(earliest!=null){
     const e=document.createElement('div'); e.style.marginTop='8px';
     const dR=Math.max(P.dadAge,P.dadRet+earliest), mR=Math.max(P.momAge,P.momRet+earliest);
     const who2 = P.single ? `${dR} 歲` : `${nm('dad')} ${dR} 歲、${nm('mom')} ${mR} 歲`;
@@ -796,7 +870,7 @@ function render(){
     else if(earliest===0) e.textContent='目前填的退休年齡剛好可行，再提早就不夠了。';
     else e.textContent=`如果${P.single?'':'兩位都'}延後 ${earliest} 年退休（${who2}），錢就夠用到 ${P.endAge} 歲。`;
     V.appendChild(e);
-  } else if(!ok){
+  } else if(!ok && maxEarly>0){
     const e=document.createElement('div'); e.style.marginTop='8px'; e.textContent='即使延後 15 年退休也不夠，建議檢查支出是否填太高。'; V.appendChild(e);
   }
   if(!ok){
@@ -819,7 +893,7 @@ function render(){
     } else {
       d.textContent='光靠減少支出也不夠，需要增加收入、延後退休，或降低預備金與保留的金額。';
     }
-    const n=document.createElement('div'); n.className='hint'; n.style.margin='6px 0 0'; n.textContent='金額是今天的錢，以後會隨物價自動調高。也可以搭配上面延後退休的建議一起看。';
+    const n=document.createElement('div'); n.className='hint'; n.style.margin='6px 0 0'; n.textContent='金額是今天的錢，以後會隨物價自動調高。'+(maxEarly>0?'也可以搭配上面延後退休的建議一起看。':'');
     box.append(t,d,n); V.appendChild(box);
   }
 
@@ -829,7 +903,8 @@ function render(){
   const kp=(cls,l,v,s)=>{const d=document.createElement('div'); d.className='kpi '+(cls||''); const a=document.createElement('div'); a.className='l'; a.textContent=l; const b=document.createElement('div'); b.className='v'; b.textContent=v; const c=document.createElement('div'); c.className='s'; c.textContent=s; d.append(a,b,c); K.appendChild(d);};
   kp('', '現在的存款與投資', wan(P.cash+P.td+P.stock), `活存 ${wan(P.cash)}・定存 ${wan(P.td)}・股票 ${wan(P.stock)}`);
   kp('a', '退休後每月最多可以花', fmt(sZero/12)+' 元', `花到 ${P.endAge} 歲剛好用完（今天的錢），每年 ${wan(sZero)}`);
-  kp('a', `${P.endAge} 歲時保留一筆的話`, fmt(sKeep/12)+' 元', `每月可花，保留 ${wan(P.legacy)}＋預備金`);
+  kp('a safe', '保守建議每月花', fmt(Math.floor(sZero*0.8/12/100)*100)+' 元', '「最多可以花」的 8 折。上面的數字假設股市每年穩定上漲，遇到大跌可能不夠，照這個花比較安全。');
+  kp('a', `${P.endAge} 歲時保留一筆的話`, fmt(sKeep/12)+' 元', (P.legacy>0 ? `每月可花，保留 ${wan(P.legacy)}＋預備金` : '還沒填想多留下的錢，所以跟上面一樣'));
   const diff = sPick - postExp;
   kp('', '跟填的退休後支出比', (diff>=0?'每月多 ':'每月少 ')+fmt(Math.abs(diff)/12)+' 元', `填的支出每月 ${fmt(postExp/12)} 元`);
 
@@ -843,14 +918,20 @@ function render(){
   // notes
   const N=$('notes'); N.replaceChildren();
   const add=(t)=>{const li=document.createElement('li'); li.textContent=t; N.appendChild(li);};
+  const A=$('alerts'); A.replaceChildren();
+  const alert=(t,warn)=>{const d=document.createElement('div'); d.className='alert'+(warn?' warn':''); const i=document.createElement('span'); i.className='ic'; i.textContent=warn?'⚠️':'💡'; const x=document.createElement('span'); x.textContent=t; d.append(i,x); if(warn){ const f=A.querySelector('.alert:not(.warn)'); A.insertBefore(d,f); } else A.appendChild(d);};
   const atRet = base.rows[Math.min(base.fullRetY, base.N)];
   const twoYears = (P.expPost||P.expPre)*2*Math.pow(1+P.inf, base.fullRetY);
-  if(atRet && atRet.cash > twoYears*1.5) add(`退休時活存預計有 ${wan(real?atRet.cash/atRet.defl:atRet.cash)}${real?'（今天的錢）':''}，超過兩年生活費很多。活存利息很低，多的部分可以考慮轉定存。`);
-  if(sPick > postExp*1.2) add('可以花的錢比填的支出多不少，代表其實不用那麼省，也可以考慮早一點退休。');
-  if(P.stock>0 && P.stock/(P.cash+P.td+P.stock)>0.6) add('股票占比超過六成，市場大跌時資產可能短期縮水不少，退休前可以考慮慢慢降低比例。');
+  if(atRet && atRet.cash > twoYears*1.5) alert(`退休時活存預計有 ${wan(real?atRet.cash/atRet.defl:atRet.cash)}${real?'（今天的錢）':''}，超過兩年生活費很多。活存利息很低，多的部分可以用「定期定額」轉去定存或股票。`);
+  if(sPick > postExp*1.2) alert('可以花的錢比填的支出多不少，代表其實不用那麼省，也可以考慮早一點退休。');
+  if(P.stock>0 && P.stock/(P.cash+P.td+P.stock)>0.6) alert('股票占比超過六成，市場大跌時資產可能短期縮水不少，退休前可以考慮慢慢降低比例。', true);
   (P.single?['dad']:['dad','mom']).forEach(k=>{ const lp=S.lp[k], r=lpCalc(lp);
-    if(lp.has!=='no' && r.empty) add(`還沒填${P.single?'':' '+nm(k)+' 的'}勞保年金。勞保年金通常是退休後最大的收入，沒填的話結果會低估很多；沒有勞保請選「沒有勞保」。`); });
-  if(!P.reserve) add('沒有填醫療／長照預備金。年紀大了醫療和照護費用可能很高，建議至少保留一筆，可以用「幫我估算」算一下。');
+    if(lp.has!=='no' && r.empty) alert(`還沒填${P.single?'':' '+nm(k)+' 的'}勞保年金。勞保年金通常是退休後最大的收入，沒填的話結果會低估很多；沒有勞保請選「沒有勞保」。`, true); });
+  { const sh=base.rows.filter(r=>r.y>0 && r.savePlan>0 && r.saveDone < r.savePlan*0.99);
+    if(sh.length){ const a=sh[0], z=sh[sh.length-1]; const avg=sh.reduce((t,r)=>t+r.saveDone/r.defl*(1+P.inf),0)/sh.length, plan=sh.reduce((t,r)=>t+r.savePlan/r.defl*(1+P.inf),0)/sh.length;
+      alert(`${ageWho({dad:a.dad-1,mom:a.mom-1})}到 ${ageWho({dad:z.dad-1,mom:z.mom-1})}這段期間，收入扣掉支出、再留 6 個月支出後不夠存，定期定額每年平均只存到 ${wan(avg)}，比設定的 ${wan(plan)} 少（今天的錢）。`, true); } }
+  if(!P.reserve) alert('沒有填醫療／長照預備金。年紀大了醫療和照護費用可能很高，建議至少保留一筆，可以用「幫我估算」算一下。', true);
+  add('活存每年都會至少保留 6 個月的支出當緊急預備金，不夠時從定存、再從股票補回來；多出來的錢留在活存，可以用定期定額轉去投資。');
   add('稅金：收入請填實際入帳的金額。退休後通常稅很少，勞保年金免稅；但存款利息、股利多的話，可能要繳所得稅或二代健保補充保費。');
 }
 
