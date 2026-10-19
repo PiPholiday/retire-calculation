@@ -104,6 +104,19 @@ tr.neg td{color:var(--warn)}
 .suggest{margin-top:12px;padding:12px 14px;border-radius:10px;background:var(--card);border:1px solid var(--line)}
 .suggest b{color:var(--accent)}
 .suggest .t{font-weight:700;margin-bottom:4px}
+.lpbox{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.lpbox h3{margin:0 0 8px;font-size:1.08rem}
+.lpbox .grid3{align-items:end;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));gap:10px;margin-top:10px}
+.lpres{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--accent-soft);font-size:.98rem}
+.lpres b{font-size:1.15rem}
+.lpres .cmp{font-size:.88rem;color:var(--mute);margin-top:2px}
+.lpwarn{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--warn-soft);font-size:.95rem}
+.subh{font-size:1.05rem;margin:18px 0 4px}
+.ltcbox{margin-top:4px;border:1px dashed var(--line);border-radius:12px;padding:14px}
+.ltcbox .facts{font-size:.92rem;color:var(--mute);margin:0 0 10px}
+.ltcbox .facts li{margin-bottom:2px}
+.ltcres{margin-top:10px;font-size:1rem}
+.linkbtn{font:inherit;font-size:.95rem;background:none;border:0;color:var(--accent);font-weight:600;cursor:pointer;padding:6px 0;min-height:44px;text-align:left}
 .banner{background:var(--warn-soft);border-radius:12px;padding:12px 14px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;font-size:.95rem}
 @media print{
   body{background:#fff;font-size:13px}
@@ -166,19 +179,25 @@ tr.neg td{color:var(--warn)}
 
   <!-- 3 -->
   <section class="card">
-    <div class="step"><span class="n">3</span><h2>收入</h2></div>
-    <p class="hint">薪水會在退休那年自動停止。勞保年金、勞退月領、房租等退休後的收入，也填在這裡並設定從幾歲開始。勞保年金的預估金額可以在勞保局網站或 App 查詢。</p>
-    <div class="rows" id="incomes"></div>
-    <div class="addbar">
-      <button class="btn" type="button" data-add="work">＋ 薪水</button>
-      <button class="btn" type="button" data-add="pension">＋ 勞保年金／勞退</button>
-      <button class="btn" type="button" data-add="other">＋ 其他收入</button>
-    </div>
+    <div class="step"><span class="n">3</span><h2>勞保年金</h2></div>
+    <p class="hint">退休後最重要的收入，一定要填。依目前規定，年資滿 15 年才能按月領，最早 60 歲可以領，65 歲領全額；每提早 1 年少 4%，每延後 1 年多 4%。不知道年資，可以用勞保局網站或 App 查詢。</p>
+    <div id="lpWrap"></div>
   </section>
 
   <!-- 4 -->
   <section class="card">
-    <div class="step"><span class="n">4</span><h2>生活支出</h2></div>
+    <div class="step"><span class="n">4</span><h2>其他收入</h2></div>
+    <p class="hint">請填<b>每月實際入帳</b>的金額（已扣稅、勞健保）。薪水會在退休那年自動停止。勞退月領、房租等退休後的收入，也填在這裡並設定從幾歲開始。</p>
+    <div class="rows" id="incomes"></div>
+    <div class="addbar">
+      <button class="btn" type="button" data-add="work">＋ 薪水</button>
+      <button class="btn" type="button" data-add="other">＋ 其他收入（勞退月領、房租…）</button>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section class="card">
+    <div class="step"><span class="n">5</span><h2>支出</h2></div>
     <p class="hint" id="hint4"></p>
     <div class="grid2">
       <div>
@@ -192,15 +211,39 @@ tr.neg td{color:var(--warn)}
           <div class="wan" data-wan="expPost"></div></label>
       </div>
     </div>
+    <h3 class="subh">特定期間的支出</h3>
+    <p class="hint">只付一段時間的錢，例如房貸、保險費、孝親費。<b>這些不要重複算進上面的生活支出。</b></p>
+    <div class="rows" id="exps"></div>
+    <div class="addbar"><button class="btn" type="button" id="addExp">＋ 新增特定期間的支出</button></div>
   </section>
 
-  <!-- 5 -->
+  <!-- 6 -->
   <section class="card">
-    <div class="step"><span class="n">5</span><h2>保留的錢與假設</h2></div>
+    <div class="step"><span class="n">6</span><h2>保留的錢與假設</h2></div>
     <p class="hint">醫療／長照預備金會一直留著不拿來花，所以試算比較保守。</p>
     <div class="grid2">
-      <label class="f"><span>醫療／長照預備金</span><div class="money"><input data-money id="reserve" inputmode="numeric"><span>元</span></div><div class="wan" data-wan="reserve"></div></label>
+      <div>
+        <label class="f" style="margin-bottom:0"><span>醫療／長照預備金</span><div class="money"><input data-money id="reserve" inputmode="numeric"><span>元</span></div><div class="wan" data-wan="reserve"></div></label>
+        <button class="linkbtn noprint" type="button" id="ltcToggle" aria-expanded="false">不知道怎麼填？幫我估算 ▾</button>
+      </div>
       <label class="f"><span><span class="ea">95</span> 歲時想再多留下的錢（給子女或備用）</span><div class="money"><input data-money id="legacy" inputmode="numeric"><span>元</span></div><div class="wan" data-wan="legacy"></div></label>
+    </div>
+    <div class="ltcbox noprint" id="ltcBox" hidden>
+      <ul class="facts">
+        <li>依國人平均壽命和疾病型態推估，一生中需要長期照護的時間約 7.3 年，男性平均 6.4 年，女性平均 8.2 年。</li>
+        <li>住護理之家：每月約 5 萬（月費約 45,000，加上耗材、雜支約 5,000）。</li>
+        <li>在家請外籍看護：每月約 3.8 萬（薪資相關約 30,000，加上耗材、營養品、醫療雜支約 8,000）。</li>
+      </ul>
+      <div class="f"><span style="display:block;font-size:.95rem;color:var(--mute);margin-bottom:4px">照顧方式</span>
+        <div class="seg" data-ltc="type"><button type="button" data-v="home">在家請看護</button><button type="button" data-v="inst">住護理之家</button></div>
+      </div>
+      <div class="grid2" style="margin-top:12px">
+        <label class="f"><span>每月費用</span><div class="money"><input data-money id="ltcCost" inputmode="numeric"><span>元</span></div></label>
+        <label class="f"><span>預估照顧幾年（每人）</span><input id="ltcYrs" type="number" step="0.1" inputmode="decimal" placeholder="(預設 7.3)"></label>
+      </div>
+      <div class="ltcres" id="ltcRes"></div>
+      <div class="addbar"><button class="btn solid" type="button" id="ltcApply" disabled>填入預備金</button></div>
+      <p class="hint" style="margin:8px 0 0">這是粗估。政府長照 2.0 有部分補助，實際花費依失能程度差很多。</p>
     </div>
     <details class="adv">
       <summary>利率、報酬率與通膨（空白就用預設值）</summary>
@@ -260,13 +303,55 @@ tr.neg td{color:var(--warn)}
       <input class="name" aria-label="項目名稱" placeholder="(項目名稱)">
       <button class="del" type="button" aria-label="刪除這項">×</button>
     </div>
-    <div class="money"><input data-money class="amt" inputmode="numeric" aria-label="金額" placeholder="(例：30,000)"><div class="seg unit"><button type="button" data-v="m">每月</button><button type="button" data-v="y">每年</button></div></div>
+    <div class="money"><input data-money class="amt" inputmode="numeric" aria-label="金額" placeholder="(實際入帳，例：30,000)"><div class="seg unit"><button type="button" data-v="m">每月</button><button type="button" data-v="y">每年</button></div></div>
     <div class="wan amtw"></div>
     <div class="meta">
       <label class="f whow"><span>誰的收入</span><select class="who"><option value="dad"></option><option value="mom"></option></select></label>
-      <label class="f fromw"><span>從幾歲開始領</span><input class="from" type="number" inputmode="numeric" placeholder="(例：65)"></label>
+      <label class="f fromw"><span>從幾歲開始領（不填＝現在）</span><input class="from" type="number" inputmode="numeric" placeholder="(不填＝現在)"></label>
       <label class="f tow"><span>領到幾歲（不填＝一直領）</span><input class="to" type="number" inputmode="numeric" placeholder="(不填＝一直領)"></label>
       <div class="f worknote" style="font-size:.88rem;color:var(--mute);align-self:center">領到退休那年為止</div>
+    </div>
+  </div>
+</template>
+
+<template id="tplExp">
+  <div class="row">
+    <div class="top">
+      <input class="name" aria-label="支出名稱" placeholder="(例：房貸、保險費)">
+      <button class="del" type="button" aria-label="刪除這項">×</button>
+    </div>
+    <div class="money"><input data-money class="amt" inputmode="numeric" aria-label="金額" placeholder="(例：20,000)"><div class="seg unit"><button type="button" data-v="m">每月</button><button type="button" data-v="y">每年</button></div></div>
+    <div class="wan amtw"></div>
+    <div class="meta">
+      <label class="f whow"><span>以誰的年紀計算</span><select class="who"><option value="dad"></option><option value="mom"></option></select></label>
+      <label class="f"><span>從幾歲開始（不填＝現在）</span><input class="from" type="number" inputmode="numeric" placeholder="(不填＝現在)"></label>
+      <label class="f"><span>付到幾歲</span><input class="to" type="number" inputmode="numeric" placeholder="(例：70)"></label>
+    </div>
+  </div>
+</template>
+
+<template id="tplLp">
+  <div class="lpbox">
+    <h3 class="lpname"></h3>
+    <div class="seg has"><button type="button" data-v="yes">有勞保</button><button type="button" data-v="no">沒有勞保</button></div>
+    <div class="lpbody">
+      <div class="seg how" style="margin-top:10px"><button type="button" data-v="est">幫我估算</button><button type="button" data-v="known">我已查到金額</button></div>
+      <div class="grid3 estw">
+        <label class="f"><span>月薪大約多少</span><select class="sal">
+          <option value="">(請選擇)</option><option value="45800">43,901 以上（上限）</option><option value="43900">42,001～43,900</option><option value="42000">40,101～42,000</option><option value="40100">38,201～40,100</option><option value="38200">36,301～38,200</option><option value="36300">34,801～36,300</option><option value="34800">33,301～34,800</option><option value="33300">31,801～33,300</option><option value="31800">30,301～31,800</option><option value="30300">29,501～30,300</option><option value="29500">29,500 以下</option>
+        </select></label>
+        <label class="f"><span>勞保年資大約幾年</span><select class="yrs">
+          <option value="">(請選擇)</option><option value="0">未滿 15 年</option><option value="15">15 年</option><option value="20">20 年</option><option value="25">25 年</option><option value="30">30 年</option><option value="35">35 年</option><option value="40">40 年</option>
+        </select></label>
+        <label class="f"><span>幾歲開始領</span><select class="age"></select></label>
+      </div>
+      <p class="hint estw" style="margin:6px 0 0">月薪以退休前最高 5 年的平均來選；年資選到退休時的總年資。</p>
+      <div class="grid3 knownw">
+        <label class="f"><span>每月可領（勞保局查到的金額）</span><div class="money"><input data-money class="amt" inputmode="numeric" placeholder="(例：18,000)"><span>元</span></div></label>
+        <label class="f"><span>幾歲開始領</span><select class="age2"></select></label>
+      </div>
+      <div class="lpres" hidden></div>
+      <div class="lpwarn" hidden></div>
     </div>
   </div>
 </template>
@@ -280,10 +365,11 @@ const EMPTY = {
   dadAge:'', dadRet:'', momAge:'', momRet:'', cash:'', td:'', stock:'',
   incomes:[
     {kind:'work', name:'薪水', amt:'', unit:'m', who:'dad'},
-    {kind:'work', name:'薪水', amt:'', unit:'m', who:'mom'},
-    {kind:'pension', name:'勞保年金', amt:'', unit:'m', who:'dad', from:'', to:''},
-    {kind:'pension', name:'勞保年金', amt:'', unit:'m', who:'mom', from:'', to:''}
+    {kind:'work', name:'薪水', amt:'', unit:'m', who:'mom'}
   ],
+  lp:{dad:{has:'yes', how:'est', sal:'', yrs:'', age:'', amt:''}, mom:{has:'yes', how:'est', sal:'', yrs:'', age:'', amt:''}},
+  exps:[],
+  ltc:{type:'', cost:'', yrs:''},
   expPre:'', expPreUnit:'m', expPost:'', expPostUnit:'m', reserve:'', legacy:'',
   rCash:'', rTd:'', rStock:'', inf:'', real:true, spendMode:'zero'
 };
@@ -291,10 +377,23 @@ const DEF = {rCash:0.5, rTd:1.7, rStock:5, inf:2};
 const PH = {endAge:'(預設 95)', dadAge:'(例：58)', dadRet:'(例：65)', momAge:'(例：55)', momRet:'(例：60)', cash:'(例：1,500,000)', td:'(例：3,000,000)', stock:'(例：1,000,000)',
   expPre:'(例：50,000)', expPost:'(不填＝跟退休前一樣)', reserve:'(例：1,000,000)', legacy:'(例：0)', rCash:'(預設 0.5)', rTd:'(預設 1.7)', rStock:'(預設 5)', inf:'(預設 2)'};
 
+const n0 = (v)=> (v===''||v==null||isNaN(v))?0:Number(v);
 let S;
 try { const raw = localStorage.getItem(KEY); S = raw ? JSON.parse(raw) : null; } catch(e){ S = null; }
 if (!S || typeof S !== 'object' || S.isSample) S = JSON.parse(JSON.stringify(EMPTY));
 if (!S.mode) { S.mode='couple'; if(S.name1==null) S.name1=''; if(S.name2==null) S.name2=''; }
+// 舊版資料轉換：勞保年金列移到勞保區
+if (!S.lp) {
+  S.lp = JSON.parse(JSON.stringify(EMPTY.lp));
+  (S.incomes||[]).forEach(x=>{ if(x.kind==='pension'){
+    const w=x.who==='mom'?'mom':'dad';
+    if(/勞保/.test(x.name||'') && !S.lp[w].amt && n0(x.amt)>0){ S.lp[w]={has:'yes',how:'known',sal:'',yrs:'',age:x.from===''||x.from==null?65:x.from,amt:x.unit==='y'?Math.round(n0(x.amt)/12):n0(x.amt)}; x._drop=true; }
+    else x.kind='other';
+  }});
+  S.incomes=(S.incomes||[]).filter(x=>!x._drop && !(x.kind==='other' && /勞保年金/.test(x.name||'') && !n0(x.amt)));
+}
+if (!S.exps) S.exps=[];
+if (!S.ltc) S.ltc={type:'', cost:'', yrs:''};
 Object.keys(PH).forEach(id=>{ const el=document.getElementById(id); if(el) el.placeholder=PH[id]; });
 const single = ()=> S.mode==='single';
 const endAgeOf = (st)=>{ const v=Number(st.endAge); return (st.endAge===''||st.endAge==null||!isFinite(v))?95:Math.min(110,Math.max(70,Math.round(v))); };
@@ -304,7 +403,6 @@ const $ = (id)=>document.getElementById(id);
 const fmt = (v)=> (v<0?'−':'') + Math.round(Math.abs(v)).toLocaleString('en-US');
 const wan = (v)=>{ if(v===''||v==null||isNaN(v)) return ''; const w=v/1e4; return (Math.abs(w)>=1? (Math.round(w*10)/10).toLocaleString('en-US') : (Math.round(w*100)/100)) + ' 萬'; };
 const toNum = (s)=>{ if(s===''||s==null) return ''; const t=String(s).replace(/[^\d.\-]/g,''); if(t===''||t==='-') return ''; const n=Number(t); return isFinite(n)?n:''; };
-const n0 = (v)=> (v===''||v==null||isNaN(v))?0:Number(v);
 
 /* ---------- 綁定輸入 ---------- */
 const simpleIds = ['endAge','dadAge','dadRet','momAge','momRet','rCash','rTd','rStock','inf'];
@@ -327,8 +425,8 @@ function applyMode(){
   const ea=endAgeOf(S);
   $('hint1').textContent = one ? `會一路算到滿 ${ea} 歲。已經退休的話，退休年齡填現在的年紀。` : `兩個人的存款、收入、支出合併計算，會一路算到年紀比較小的那位滿 ${ea} 歲。已經退休的話，退休年齡填現在的年紀。`;
   $('hint2').textContent = (one ? '' : '兩個人加起來的總額。') + '可以打開銀行和證券 App 一項一項加總。';
-  $('hint4').textContent = (one ? '每個月的生活費' : '兩個人一起的生活費') + '，包含吃住、交通、保險費、紅包等。這些都會從活存扣。';
-  renderIncomes();
+  $('hint4').textContent = (one ? '每個月的生活費' : '兩個人一起的生活費') + '，包含吃住、交通、水電、紅包等日常開銷。這些都會從活存扣。';
+  renderIncomes(); renderLp(); renderExps(); renderLtc();
 }
 function updWan(id){ const el=document.querySelector(`[data-wan="${id}"]`); if(el) el.textContent = S[id]===''?'':'＝ '+wan(S[id]); }
 
@@ -387,11 +485,144 @@ function renderIncomes(){
 }
 document.querySelectorAll('[data-add]').forEach(b=>b.addEventListener('click',()=>{
   const k=b.dataset.add;
-  const base={work:{name:'薪水'},pension:{name:'勞保年金／勞退月領',from:'',to:''},other:{name:'其他收入（如房租）',from:'',to:''}}[k];
+  const base={work:{name:'薪水'},other:{name:'',from:'',to:''}}[k];
   S.incomes.push(Object.assign({kind:k,amt:'',unit:'m',who:'dad'},base));
   if(single()) S.incomes[S.incomes.length-1].who='dad'; renderIncomes(); touched();
   const rows=$('incomes').querySelectorAll('.row'); const last=rows[rows.length-1]; if(last){ last.scrollIntoView({block:'center'}); last.querySelector('.amt').focus(); }
 }));
+
+/* ---------- 勞保年金 ---------- */
+const LP_BASE=65;
+// 回傳 {monthly, base, age, formula, warn}
+function lpCalc(lp){
+  if(!lp || lp.has==='no') return {monthly:0, none:true};
+  const age = lp.age===''||lp.age==null ? LP_BASE : Number(lp.age);
+  if(lp.how==='known'){ const m=n0(lp.amt); return {monthly:m, age, known:true, empty:!m}; }
+  if(lp.yrs!==''&&lp.yrs!=null&&Number(lp.yrs)<15) return {monthly:0, age, short:true};
+  if(lp.sal===''||lp.yrs===''||lp.sal==null||lp.yrs==null) return {monthly:0, age, empty:true};
+  const sal=Number(lp.sal), yrs=Number(lp.yrs);
+  const b=sal*yrs*0.0155, a=sal*yrs*0.00775+3000;
+  const base=Math.round(Math.max(a,b));
+  const adj=Math.min(0.2,Math.max(-0.2,(age-LP_BASE)*0.04));
+  return {monthly:Math.round(base*(1+adj)), base, age, adj, sal, yrs, useB:b>=a};
+}
+function lpAgeOpts(sel, val){
+  sel.replaceChildren();
+  for(let a=60;a<=70;a++){ const o=document.createElement('option'); o.value=a; const d=(a-LP_BASE)*4;
+    o.textContent = `${a} 歲` + (d===0?'（全額）':d<0?`（少 ${-d}%）`:`（多 ${d}%）`); sel.appendChild(o); }
+  sel.value = val===''||val==null ? LP_BASE : val;
+}
+function renderLp(){
+  const box=$('lpWrap'); box.replaceChildren();
+  (single()?['dad']:['dad','mom']).forEach(k=>{
+    const lp=S.lp[k]; const node=$('tplLp').content.firstElementChild.cloneNode(true);
+    const q=(c)=>node.querySelector(c);
+    q('.lpname').textContent = single()? '我的勞保' : nm(k);
+    const setSeg=(seg,v)=>seg.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===v)));
+    const upd=()=>{
+      setSeg(q('.has'), lp.has||'yes'); setSeg(q('.how'), lp.how||'est');
+      q('.lpbody').hidden = lp.has==='no';
+      node.querySelectorAll('.estw').forEach(e=>e.style.display = lp.how==='known'?'none':'');
+      q('.knownw').style.display = lp.how==='known'?'':'none';
+      const r=lpCalc(lp), res=q('.lpres'), w=q('.lpwarn');
+      res.hidden=true; w.hidden=true; res.replaceChildren();
+      if(r.short){ w.hidden=false; w.textContent='年資未滿 15 年，不能按月領年金，只能一次請領老年給付。這裡不算進每月收入。如果之後還會繼續工作、年資會超過 15 年，請改選退休時的總年資。'; }
+      else if(!r.empty && r.monthly>0){
+        res.hidden=false;
+        const l1=document.createElement('div'); l1.append(`${r.age} 歲起，每月約可領 `); const b=document.createElement('b'); b.textContent=fmt(r.monthly)+' 元'; l1.appendChild(b);
+        res.appendChild(l1);
+        if(!r.known){
+          const c=document.createElement('div'); c.className='cmp';
+          let t = r.useB ? `${fmt(r.sal)} × ${r.yrs} 年 × 1.55% ≈ ${fmt(r.base)} 元` : `${fmt(r.sal)} × ${r.yrs} 年 × 0.775% ＋ 3,000 ≈ ${fmt(r.base)} 元`;
+          if(r.adj) t += `；${r.age} 歲領${r.adj<0?'少':'多'} ${Math.round(Math.abs(r.adj)*100)}% → ${fmt(r.monthly)} 元`;
+          c.textContent='算法：'+t+'。這是粗估，實際以勞保局試算為準。'; res.appendChild(c);
+        }
+      }
+    };
+    lpAgeOpts(q('.age'), lp.age); lpAgeOpts(q('.age2'), lp.age);
+    q('.sal').value = lp.sal==null?'':String(lp.sal); q('.yrs').value = lp.yrs==null?'':String(lp.yrs);
+    const a=q('.amt'); a.value = lp.amt===''||lp.amt==null?'':fmt(lp.amt);
+    q('.has').addEventListener('click',e=>{const b=e.target.closest('button'); if(!b) return; lp.has=b.dataset.v; upd(); touched();});
+    q('.how').addEventListener('click',e=>{const b=e.target.closest('button'); if(!b) return; lp.how=b.dataset.v; upd(); touched();});
+    q('.sal').addEventListener('change',e=>{lp.sal=e.target.value===''?'':Number(e.target.value); upd(); touched();});
+    q('.yrs').addEventListener('change',e=>{lp.yrs=e.target.value===''?'':Number(e.target.value); upd(); touched();});
+    const setAge=(v)=>{lp.age=Number(v); q('.age').value=v; q('.age2').value=v; upd(); touched();};
+    q('.age').addEventListener('change',e=>setAge(e.target.value));
+    q('.age2').addEventListener('change',e=>setAge(e.target.value));
+    a.addEventListener('input',()=>{lp.amt=toNum(a.value); upd(); touched();});
+    a.addEventListener('blur',()=>{a.value=lp.amt===''?'':fmt(lp.amt);});
+    a.addEventListener('focus',()=>{a.value=lp.amt===''?'':String(lp.amt); a.select();});
+    upd(); box.appendChild(node);
+  });
+}
+
+/* ---------- 特定期間支出 ---------- */
+function renderExps(){
+  const box=$('exps'); box.replaceChildren();
+  S.exps.forEach((x,i)=>{
+    const node=$('tplExp').content.firstElementChild.cloneNode(true);
+    const q=(c)=>node.querySelector(c);
+    q('.name').value=x.name||'';
+    q('.amt').value=x.amt===''||x.amt==null?'':fmt(x.amt);
+    q('.amtw').textContent=x.amt===''||x.amt==null?'':'＝ '+wan(x.amt);
+    const opts=q('.who').options; opts[0].textContent=nm('dad'); opts[1].textContent=nm('mom');
+    q('.who').value=x.who||'dad';
+    if(single()) q('.whow').style.display='none';
+    q('.from').value=x.from===''||x.from==null?'':x.from;
+    q('.to').value=x.to===''||x.to==null?'':x.to;
+    q('.unit').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===(x.unit||'m'))));
+    q('.name').addEventListener('input',e=>{x.name=e.target.value; touched(false);});
+    const a=q('.amt');
+    a.addEventListener('input',()=>{x.amt=toNum(a.value); q('.amtw').textContent=x.amt===''?'':'＝ '+wan(x.amt); touched();});
+    a.addEventListener('blur',()=>{a.value=x.amt===''?'':fmt(x.amt);});
+    a.addEventListener('focus',()=>{a.value=x.amt===''?'':String(x.amt); a.select();});
+    q('.who').addEventListener('change',e=>{x.who=e.target.value; touched();});
+    q('.from').addEventListener('input',e=>{x.from=toNum(e.target.value); touched();});
+    q('.to').addEventListener('input',e=>{x.to=toNum(e.target.value); touched();});
+    q('.unit').addEventListener('click',e=>{const b=e.target.closest('button'); if(!b) return; x.unit=b.dataset.v;
+      q('.unit').querySelectorAll('button').forEach(z=>z.setAttribute('aria-pressed',String(z===b))); touched();});
+    q('.del').addEventListener('click',()=>{S.exps.splice(i,1); renderExps(); touched();});
+    box.appendChild(node);
+  });
+}
+$('addExp').addEventListener('click',()=>{
+  S.exps.push({name:'',amt:'',unit:'m',who:'dad',from:'',to:''}); renderExps(); touched();
+  const rows=$('exps').querySelectorAll('.row'); const last=rows[rows.length-1]; if(last){ last.scrollIntoView({block:'center'}); last.querySelector('.name').focus(); }
+});
+
+/* ---------- 長照估算 ---------- */
+const LTC_DEF={home:38000, inst:50000};
+function ltcCalc(){
+  const t=S.ltc.type; if(!t) return null;
+  const cost = S.ltc.cost===''||S.ltc.cost==null ? LTC_DEF[t] : n0(S.ltc.cost);
+  const yrs = S.ltc.yrs===''||S.ltc.yrs==null ? 7.3 : n0(S.ltc.yrs);
+  const ppl = single()?1:2;
+  return {cost, yrs, ppl, total: Math.round(cost*12*yrs*ppl/10000)*10000};
+}
+function renderLtc(){
+  document.querySelectorAll('[data-ltc="type"] button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===S.ltc.type)));
+  $('ltcCost').placeholder = S.ltc.type ? `(預設 ${fmt(LTC_DEF[S.ltc.type])})` : '(先選照顧方式)';
+  $('ltcCost').value = S.ltc.cost===''||S.ltc.cost==null?'':fmt(S.ltc.cost);
+  $('ltcYrs').value = S.ltc.yrs===''||S.ltc.yrs==null?'':S.ltc.yrs;
+  updLtc();
+}
+function updLtc(){
+  const r=ltcCalc(), el=$('ltcRes');
+  el.replaceChildren(); $('ltcApply').disabled=!r;
+  if(!r){ el.textContent='請先選照顧方式。'; return; }
+  el.append(`${wan(r.cost)} × 12 個月 × ${r.yrs} 年${r.ppl>1?' × 2 人':''} ≈ `);
+  const b=document.createElement('b'); b.textContent=wan(r.total); el.appendChild(b);
+}
+document.querySelector('[data-ltc="type"]').addEventListener('click',e=>{const b=e.target.closest('button'); if(!b) return;
+  S.ltc.type=b.dataset.v; S.ltc.cost=''; renderLtc(); touched(false);});
+$('ltcCost').addEventListener('input',()=>{S.ltc.cost=toNum($('ltcCost').value); updLtc(); touched(false);});
+$('ltcCost').addEventListener('blur',()=>{$('ltcCost').value=S.ltc.cost===''?'':fmt(S.ltc.cost);});
+$('ltcCost').addEventListener('focus',()=>{$('ltcCost').value=S.ltc.cost===''?'':String(S.ltc.cost); $('ltcCost').select();});
+$('ltcYrs').addEventListener('input',()=>{S.ltc.yrs=toNum($('ltcYrs').value); updLtc(); touched(false);});
+$('ltcToggle').addEventListener('click',()=>{const bx=$('ltcBox'); const open=bx.hidden; bx.hidden=!open; $('ltcToggle').setAttribute('aria-expanded',String(open));
+  $('ltcToggle').textContent = open ? '收起估算 ▴' : '不知道怎麼填？幫我估算 ▾';});
+$('ltcApply').addEventListener('click',()=>{const r=ltcCalc(); if(!r) return; S.reserve=r.total; $('reserve').value=fmt(r.total); updWan('reserve'); touched();
+  $('ltcApply').textContent='已填入 ✓'; setTimeout(()=>{$('ltcApply').textContent='填入預備金';},1500);});
 
 /* ---------- 計算 ---------- */
 function inputsFrom(st){
@@ -401,7 +632,9 @@ function inputsFrom(st){
     single:one, endAge:endAgeOf(st),
     dadAge:n0(st.dadAge), dadRet:n0(st.dadRet), momAge:one?n0(st.dadAge):n0(st.momAge), momRet:one?n0(st.dadRet):n0(st.momRet),
     cash:n0(st.cash), td:n0(st.td), stock:n0(st.stock),
-    incomes:(st.incomes||[]).filter(x=>!(one && x.who==='mom')).map(x=>({kind:x.kind, who:x.who, annual:yr(x.amt,x.unit), from:x.from===''||x.from==null?null:Number(x.from), to:x.to===''||x.to==null?null:Number(x.to)})),
+    incomes:(st.incomes||[]).filter(x=>!(one && x.who==='mom')).map(x=>({kind:x.kind==='work'?'work':'other', who:x.who, annual:yr(x.amt,x.unit), from:x.from===''||x.from==null?null:Number(x.from), to:x.to===''||x.to==null?null:Number(x.to)}))
+      .concat((one?['dad']:['dad','mom']).map(k=>{ const r=lpCalc(st.lp&&st.lp[k]); return {kind:'lp', who:k, annual:r.monthly*12, from:r.age||LP_BASE, to:null}; }).filter(x=>x.annual>0)),
+    exps:(st.exps||[]).map(x=>({who:one?'dad':(x.who==='mom'?'mom':'dad'), annual:yr(x.amt,x.unit), from:x.from===''||x.from==null?null:Number(x.from), to:x.to===''||x.to==null?null:Number(x.to)})).filter(x=>x.annual>0),
     expPre:(st.expPre===''||st.expPre==null)? yr(st.expPost,st.expPostUnit) : yr(st.expPre,st.expPreUnit),
     expPost:(st.expPost===''||st.expPost==null)? yr(st.expPre,st.expPreUnit) : yr(st.expPost,st.expPostUnit),
     reserve:n0(st.reserve), legacy:n0(st.legacy),
@@ -440,6 +673,7 @@ function simulate(P, spendReal, retireShift){
       // 只有一人退休時，支出用退休前
       expense = P.expPre * g;
     }
+    (P.exps||[]).forEach(x=>{ const age = x.who==='mom'? mA : dA; if((x.from==null||age>=x.from) && (x.to==null||age<=x.to)) expense += x.annual*g; });
     cash = cash*(1+P.rCash) + income - expense;
     td = td*(1+P.rTd);
     stock = stock*(1+P.rStock);
@@ -491,7 +725,6 @@ function suggestCut(P){
   const k=Math.floor(lo*100)/100;
   return k>0 ? {type:'both', k, pre:P.expPre*k, post:P.expPost*k} : {type:'none'};
 }
-window.__retireCalc = {inputsFrom, simulate, maxSpend, enough, suggestCut};
 const lab = (dad,mom)=> single()? `${dad}` : `${dad}／${mom}`;
 const ageWho = (row)=> single()? `${row.dad} 歲` : `${nm('dad')} ${row.dad}／${nm('mom')} ${row.mom} 歲`;
 const ageHead = ()=> single()? `年紀（${nm('dad')}）` : `年紀（${nm('dad')}／${nm('mom')}）`;
@@ -504,7 +737,7 @@ function valid(P){
   if(!P.dadRet || !P.momRet) msgs.push(P.single ? '請填預計幾歲退休。' : '請填兩位預計幾歲退休。');
   if(P.cash+P.td+P.stock<=0 && P.incomes.every(x=>!x.annual)) msgs.push('請填至少一項存款或收入。');
   if(!P.expPre && !P.expPost) msgs.push('請填生活支出。');
-  (S.incomes||[]).forEach(x=>{ if(x.kind==='pension' && n0(x.amt)>0 && (x.from===''||x.from==null) && !(P.single && x.who==='mom')) msgs.push(`${P.single?'':nm(x.who)+' 的'}「${x.name||'勞保年金'}」請填從幾歲開始領。`); });
+  (S.exps||[]).forEach(x=>{ if(n0(x.amt)>0 && (x.to===''||x.to==null)) msgs.push(`特定期間的支出「${x.name||'未命名'}」請填付到幾歲。`); });
   return msgs;
 }
 
@@ -615,7 +848,10 @@ function render(){
   if(atRet && atRet.cash > twoYears*1.5) add(`退休時活存預計有 ${wan(real?atRet.cash/atRet.defl:atRet.cash)}${real?'（今天的錢）':''}，超過兩年生活費很多。活存利息很低，多的部分可以考慮轉定存。`);
   if(sPick > postExp*1.2) add('可以花的錢比填的支出多不少，代表其實不用那麼省，也可以考慮早一點退休。');
   if(P.stock>0 && P.stock/(P.cash+P.td+P.stock)>0.6) add('股票占比超過六成，市場大跌時資產可能短期縮水不少，退休前可以考慮慢慢降低比例。');
-  if(!P.reserve) add('沒有填醫療／長照預備金。年紀大了醫療和照護費用可能很高，建議至少保留一筆。');
+  (P.single?['dad']:['dad','mom']).forEach(k=>{ const lp=S.lp[k], r=lpCalc(lp);
+    if(lp.has!=='no' && r.empty) add(`還沒填${P.single?'':' '+nm(k)+' 的'}勞保年金。勞保年金通常是退休後最大的收入，沒填的話結果會低估很多；沒有勞保請選「沒有勞保」。`); });
+  if(!P.reserve) add('沒有填醫療／長照預備金。年紀大了醫療和照護費用可能很高，建議至少保留一筆，可以用「幫我估算」算一下。');
+  add('稅金：收入請填實際入帳的金額。退休後通常稅很少，勞保年金免稅；但存款利息、股利多的話，可能要繳所得稅或二代健保補充保費。');
 }
 
 function rowsEvery5(base){
