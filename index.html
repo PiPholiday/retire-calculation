@@ -906,13 +906,19 @@ function render(){
   const retYrs = Math.max(0, base.N - base.fullRetY);
   const rr = base.rows[Math.min(base.fullRetY, base.N)];
   const stockSh = rr && rr.total>0 ? Math.max(0, rr.stock)/rr.total : 0;
-  const baseK = retYrs < 30 ? 0.6 : retYrs < 40 ? 0.55 : 0.5;
-  const cutK = stockSh < 0.2 ? 0 : stockSh < 0.5 ? 0.05 : stockSh < 0.7 ? 0.15 : 0.2;
-  const safeK = Math.max(0.1, baseK - cutK);
+  const yi = retYrs < 30 ? 0 : retYrs < 40 ? 1 : 2;
+  const baseK = [0.6,0.55,0.5][yi];
+  const cutK = stockSh < 0.5 ? 0.05 : stockSh < 0.7 ? 0.15 : 0.2;
+  const safeK = stockSh < 0.1 ? 0.8 : stockSh < 0.2 ? [0.7,0.65,0.6][yi] : Math.max(0.1, baseK - cutK);
   const zhe = (k)=> (Math.round(k*100)/10) + ' 折';
   const shTxt = Math.round(stockSh*100) + '%';
-  kp('a safe', '保守建議每月花', fmt(Math.floor(sZero*safeK/12/100)*100)+' 元',
-    `退休後要撐 ${retYrs} 年打 ${zhe(baseK)}；${base.fullRetY>0?'退休時':'目前'}股票約占 ${shTxt}，` + (cutK>0 ? `再減 ${Math.round(cutK*100)/10} 折，` : '不用再減，') + `所以是 ${zhe(safeK)}。「最多可以花」假設股市每年穩定上漲；照這個金額花，遇到股市有好有壞，大多數人仍有 95% 的機會撐到 ${P.endAge} 歲。`);
+  const whenTxt = base.fullRetY>0 ? '退休時' : '目前';
+  const why = stockSh < 0.2
+    ? `${whenTxt}股票約占 ${shTxt}，資產波動小，打 ${zhe(safeK)}。`
+    : `退休後要撐 ${retYrs} 年打 ${zhe(baseK)}；${whenTxt}股票約占 ${shTxt}，再減 ${Math.round(cutK*100)/10} 折，所以是 ${zhe(safeK)}。`;
+  const safeM = Math.floor(sZero*safeK/12/100)*100;
+  kp('a safe', '比較安心的花法', `每月 ${(safeM/1e4).toFixed(1)}～${(Math.floor(sZero/12/100)*100/1e4).toFixed(1)} 萬`,
+    `${why}花在下限，遇到股市有好有壞，大多數人仍有 95% 的機會撐到 ${P.endAge} 歲；上限是假設股市每年穩定上漲。建議每年重新算一次：股市好的年份可以往上限花，不好的年份往下限省。`);
   kp('a', `${P.endAge} 歲時保留一筆的話`, fmt(sKeep/12)+' 元', (P.legacy>0 ? `每月可花，保留 ${wan(P.legacy)}＋預備金` : '還沒填想多留下的錢，所以跟上面一樣'));
   const diff = sPick - postExp;
   kp('', '跟填的退休後支出比', (diff>=0?'每月多 ':'每月少 ')+fmt(Math.abs(diff)/12)+' 元', `填的支出每月 ${fmt(postExp/12)} 元`);
