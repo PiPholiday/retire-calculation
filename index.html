@@ -902,8 +902,10 @@ function render(){
   const postExp = P.expPost;
   const kp=(cls,l,v,s)=>{const d=document.createElement('div'); d.className='kpi '+(cls||''); const a=document.createElement('div'); a.className='l'; a.textContent=l; const b=document.createElement('div'); b.className='v'; b.textContent=v; const c=document.createElement('div'); c.className='s'; c.textContent=s; d.append(a,b,c); K.appendChild(d);};
   kp('', '現在的存款與投資', wan(P.cash+P.td+P.stock), `活存 ${wan(P.cash)}・定存 ${wan(P.td)}・股票 ${wan(P.stock)}`);
-  kp('a', '退休後每月最多可以花', fmt(sZero/12)+' 元', `花到 ${P.endAge} 歲剛好用完（今天的錢），每年 ${wan(sZero)}`);
-  kp('a safe', '保守建議每月花', fmt(Math.floor(sZero*0.8/12/100)*100)+' 元', '「最多可以花」的 8 折。上面的數字假設股市每年穩定上漲，遇到大跌可能不夠，照這個花比較安全。');
+  kp('a', '退休後每月最多可以花', fmt(sZero/12)+' 元', (P.reserve>0 ? `花到 ${P.endAge} 歲只剩預備金 ${wan(P.reserve)}（今天的錢），每年 ${wan(sZero)}` : `花到 ${P.endAge} 歲剛好用完（今天的錢），每年 ${wan(sZero)}`));
+  const retYrs = Math.max(0, base.N - base.fullRetY);
+  const safeK = retYrs < 30 ? 0.65 : retYrs < 40 ? 0.55 : 0.5;
+  kp('a safe', '保守建議每月花', fmt(Math.floor(sZero*safeK/12/100)*100)+' 元', `退休後要撐 ${retYrs} 年，所以打 ${Math.round(safeK*100)/10} 折（30 年內 6.5 折、30～40 年 5.5 折、40 年以上 5 折）。「最多可以花」假設股市每年穩定上漲；照這個金額花，遇到股市有好有壞，大多數人仍有 95% 的機會撐到 ${P.endAge} 歲。`);
   kp('a', `${P.endAge} 歲時保留一筆的話`, fmt(sKeep/12)+' 元', (P.legacy>0 ? `每月可花，保留 ${wan(P.legacy)}＋預備金` : '還沒填想多留下的錢，所以跟上面一樣'));
   const diff = sPick - postExp;
   kp('', '跟填的退休後支出比', (diff>=0?'每月多 ':'每月少 ')+fmt(Math.abs(diff)/12)+' 元', `填的支出每月 ${fmt(postExp/12)} 元`);
@@ -920,6 +922,8 @@ function render(){
   const add=(t)=>{const li=document.createElement('li'); li.textContent=t; N.appendChild(li);};
   const A=$('alerts'); A.replaceChildren();
   const alert=(t,warn)=>{const d=document.createElement('div'); d.className='alert'+(warn?' warn':''); const i=document.createElement('span'); i.className='ic'; i.textContent=warn?'⚠️':'💡'; const x=document.createElement('span'); x.textContent=t; d.append(i,x); if(warn){ const f=A.querySelector('.alert:not(.warn)'); A.insertBefore(d,f); } else A.appendChild(d);};
+  { const pre = P.reserve>0 ? base.rows.find(r=>r.y>0 && r.y<=base.fullRetY && r.total < P.reserve*r.defl-1) : null;
+    if(pre) alert(`還沒退休，大約在 ${ageWho(pre)}時，資產就會低於醫療／長照預備金 ${wan(P.reserve)}（今天的錢）。「退休後每月最多可以花」沒有把這段算進去，建議減少退休前的支出、降低預備金，或增加收入。`, true); }
   const atRet = base.rows[Math.min(base.fullRetY, base.N)];
   const twoYears = (P.expPost||P.expPre)*2*Math.pow(1+P.inf, base.fullRetY);
   if(atRet && atRet.cash > twoYears*1.5) alert(`退休時活存預計有 ${wan(real?atRet.cash/atRet.defl:atRet.cash)}${real?'（今天的錢）':''}，超過兩年生活費很多。活存利息很低，多的部分可以用「定期定額」轉去定存或股票。`);
