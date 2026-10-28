@@ -122,6 +122,10 @@ tr.neg td{color:var(--warn)}
 .ltcbox .facts li{margin-bottom:2px}
 .ltcres{margin-top:10px;font-size:1rem}
 .linkbtn{font:inherit;font-size:.95rem;background:none;border:0;color:var(--accent);font-weight:600;cursor:pointer;padding:6px 0;min-height:44px;text-align:left}
+.pnav{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+.pnav a{display:inline-flex;align-items:center;min-height:44px;padding:6px 16px;border-radius:999px;border:1.5px solid var(--line);color:var(--mute);text-decoration:none;font-size:.95rem;background:var(--card)}
+.pnav a[aria-current="page"]{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.alert a{color:var(--accent);font-weight:600}
 .banner{background:var(--warn-soft);border-radius:12px;padding:12px 14px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;font-size:.95rem}
 @media print{
   body{background:#fff;font-size:13px}
@@ -133,6 +137,10 @@ tr.neg td{color:var(--warn)}
 </head>
 <body>
 <main>
+  <nav class="pnav noprint" aria-label="切換頁面">
+    <a href="index.html" aria-current="page">退休金試算</a>
+    <a href="rebalance.html">資產再平衡</a>
+  </nav>
   <div class="hdr">
     <h1>退休金試算</h1>
     <button class="gear noprint" id="gearBtn" type="button" aria-expanded="false" aria-controls="advPanel" aria-label="進階設定" title="進階設定">⚙</button>
@@ -934,7 +942,7 @@ function render(){
   const N=$('notes'); N.replaceChildren();
   const add=(t)=>{const li=document.createElement('li'); li.textContent=t; N.appendChild(li);};
   const A=$('alerts'); A.replaceChildren();
-  const alert=(t,warn)=>{const d=document.createElement('div'); d.className='alert'+(warn?' warn':''); const i=document.createElement('span'); i.className='ic'; i.textContent=warn?'⚠️':'💡'; const x=document.createElement('div'); if(Array.isArray(t)){ const h=document.createElement('b'); h.textContent=t[0]; x.appendChild(h); const ul=document.createElement('ul'); ul.style.cssText='margin:4px 0 0;padding-left:1.2em'; t.slice(1).forEach(z=>{const li=document.createElement('li'); li.textContent=z; li.style.marginTop='3px'; ul.appendChild(li);}); x.appendChild(ul); } else x.textContent=t; d.append(i,x); if(warn){ const f=A.querySelector('.alert:not(.warn)'); A.insertBefore(d,f); } else A.appendChild(d);};
+  const alert=(t,warn)=>{const d=document.createElement('div'); d.className='alert'+(warn?' warn':''); const i=document.createElement('span'); i.className='ic'; i.textContent=warn?'⚠️':'💡'; const x=document.createElement('div'); if(Array.isArray(t)){ const h=document.createElement('b'); h.textContent=t[0]; x.appendChild(h); const ul=document.createElement('ul'); ul.style.cssText='margin:4px 0 0;padding-left:1.2em'; t.slice(1).forEach(z=>{const li=document.createElement('li'); li.textContent=z; li.style.marginTop='3px'; ul.appendChild(li);}); x.appendChild(ul); } else x.textContent=t; d.append(i,x); if(warn){ const f=A.querySelector('.alert:not(.warn)'); A.insertBefore(d,f); } else A.appendChild(d); return x;};
   { const pre = P.reserve>0 ? base.rows.find(r=>r.y>0 && r.y<=base.fullRetY && r.total < P.reserve*r.defl-1) : null;
     if(pre) alert(`還沒退休，大約在 ${ageWho(pre)}時，資產就會低於醫療／長照預備金 ${wan(P.reserve)}（今天的錢）。「退休後每月最多可以花」沒有把這段算進去，建議減少退休前的支出、降低預備金，或增加收入。`, true); }
   const atRet = base.rows[Math.min(base.fullRetY, base.N)];
@@ -955,7 +963,10 @@ function render(){
         : `你的固定收入大致夠付退休支出，股市大跌時盡量不要賣股，等回升再動用。`);
       items.push(`大跌那幾年先少花 1～2 成（旅遊、大筆花費延後），等股市回來再恢復。`);
       items.push(`不要全部轉定存：定存利率追不上通膨，30 年後購買力會縮水；高股息 ETF 也是股票，大跌一樣會跌，不能當安全桶。`);
-      alert(items, true);
+      const box=alert(items, true);
+      const p=document.createElement('div'); p.style.marginTop='6px';
+      const a=document.createElement('a'); a.href='rebalance.html'; a.textContent='用「資產再平衡計算器」算每項該買多少、賣多少 →';
+      p.appendChild(a); box.appendChild(p);
     } }
   (P.single?['dad']:['dad','mom']).forEach(k=>{ const lp=S.lp[k], r=lpCalc(lp);
     if(lp.has!=='no' && r.empty) alert(`還沒填${P.single?'':' '+nm(k)+' 的'}勞保年金。勞保年金通常是退休後最大的收入，沒填的話結果會低估很多；沒有勞保請選「沒有勞保」。`, true); });
